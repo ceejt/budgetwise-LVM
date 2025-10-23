@@ -1,0 +1,153 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { createClient } from "@/lib/supabase/client"
+import type { Category } from "@/lib/types"
+import { Plus } from "lucide-react"
+
+interface AddTransactionDialogProps {
+  userId: string
+  type: "income" | "expense"
+  onSuccess: () => void
+}
+
+export function AddTransactionDialog({ userId, type, onSuccess }: AddTransactionDialogProps) {
+  const [open, setOpen] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [amount, setAmount] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [description, setDescription] = useState("")
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [isLoading, setIsLoading] = useState(false)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (open) {
+      fetchCategories()
+    }
+  }, [open])
+
+  const fetchCategories = async () => {
+    const { data } = await supabase.from("categories").select("*").eq("user_id", userId)
+    if (data) setCategories(data)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const selectedCategory = categories.find((c) => c.id === categoryId)
+
+      const { error } = await supabase.from("transactions").insert({
+        user_id: userId,
+        type,
+        amount: Number.parseFloat(amount),
+        category_id: categoryId || null,
+        category_name: selectedCategory?.name || null,
+        description,
+        date,
+      })
+
+      if (error) throw error
+
+      setOpen(false)
+      setAmount("")
+      setCategoryId("")
+      setDescription("")
+      setDate(new Date().toISOString().split("T")[0])
+      onSuccess()
+    } catch (error) {
+      console.error("Error adding transaction:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full bg-transparent"
+          style={{ borderColor: "#E0E0E0", color: "#293F55" }}
+        >
+          Add Items
+          <Plus className="h-4 w-4 ml-2" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add {type === "income" ? "Income" : "Expense"}</DialogTitle>
+          <DialogDescription>Enter the details of your {type}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount (₱)</Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.icon} {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="What was this for?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </div>
+          <Button
+            type="submit"
+            className="w-full text-white"
+            style={{ backgroundColor: "#72ADFD" }}
+            disabled={isLoading}
+          >
+            {isLoading ? "Adding..." : `Add ${type === "income" ? "Income" : "Expense"}`}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
