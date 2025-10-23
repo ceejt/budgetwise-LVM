@@ -7,6 +7,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "BudgetWise",
   description: "Track Smart. Spend Wise",
+  icons: {
+    icon: "/public/favicon.png",
+  },
 };
 
 export default function RootLayout({

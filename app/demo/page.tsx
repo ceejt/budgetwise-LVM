@@ -14,6 +14,7 @@ import type {
   Category,
   CalendarTask,
   Wallet,
+  UserType,
 } from "@/lib/types";
 
 export default function DemoPage() {
@@ -21,7 +22,7 @@ export default function DemoPage() {
     id: "demo-user-123",
     email: "demo@student.edu",
     full_name: "CJ Tinae",
-    user_type: "student",
+    user_type: "student" as UserType,
     currency: "PHP",
     theme: "light",
     tip_frequency: "daily",
