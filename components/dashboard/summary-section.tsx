@@ -5,16 +5,30 @@ import { createClient } from "@/lib/supabase/client"
 import type { Transaction, Goal, EWallet } from "@/lib/types"
 import { AddWalletDialog } from "./add-wallet-dialog"
 import { EditWalletDialog } from "./edit-wallet-dialog"
+import { SpendingInsightsCard } from "./spending-insights-card"
+import { AvailableToSpendCard } from "./available-to-spend-card"
+import { SpendingTrendChart, CategoryComparisonChart } from "./spending-trend-chart"
+import {
+  type Period,
+  getPeriodRange,
+  getPreviousPeriodRange,
+  filterTransactionsByPeriod,
+  calculateSpendingInsights,
+  calculateTrendComparison,
+  calculateAvailableToSpend,
+  getDailySpendingData,
+  getCategoryComparison
+} from "@/lib/utils/analytics"
 
 interface SummarySectionProps {
   userId: string
 }
 
 export function SummarySection({ userId }: SummarySectionProps) {
-  const [expenses, setExpenses] = useState<Transaction[]>([])
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [wallets, setWallets] = useState<EWallet[]>([])
-  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily")
+  const [period, setPeriod] = useState<Period>("monthly")
   const [editingWallet, setEditingWallet] = useState<EWallet | null>(null)
   const supabase = createClient()
 
@@ -23,29 +37,64 @@ export function SummarySection({ userId }: SummarySectionProps) {
   }, [userId])
 
   const fetchData = async () => {
-    const { data: expenseData } = await supabase
+    // Fetch all transactions (both income and expenses)
+    const { data: transactionData } = await supabase
       .from("transactions")
       .select("*")
       .eq("user_id", userId)
-      .eq("type", "expense")
+      .order("date", { ascending: false })
 
     const { data: goalData } = await supabase
       .from("goals")
       .select("*")
       .eq("user_id", userId)
       .eq("status", "active")
-      .limit(1)
 
-    const { data: walletData } = await supabase.from("e_wallets").select("*").eq("user_id", userId)
+    const { data: walletData } = await supabase
+      .from("e_wallets")
+      .select("*")
+      .eq("user_id", userId)
 
-    if (expenseData) setExpenses(expenseData)
+    if (transactionData) setAllTransactions(transactionData)
     if (goalData) setGoals(goalData)
     if (walletData) setWallets(walletData)
   }
 
-  const totalExpenses = expenses.reduce((acc, curr) => acc + Number(curr.amount), 0)
+  // Get period ranges
+  const currentPeriodRange = getPeriodRange(period)
+  const previousPeriodRange = getPreviousPeriodRange(period)
 
-  const categoryTotals = expenses.reduce(
+  // Filter transactions by period
+  const currentPeriodTransactions = filterTransactionsByPeriod(
+    allTransactions,
+    currentPeriodRange.startDate,
+    currentPeriodRange.endDate
+  )
+
+  const previousPeriodTransactions = filterTransactionsByPeriod(
+    allTransactions,
+    previousPeriodRange.startDate,
+    previousPeriodRange.endDate
+  )
+
+  // Split into income and expenses
+  const currentExpenses = currentPeriodTransactions.filter(t => t.type === "expense")
+  const currentIncome = currentPeriodTransactions.filter(t => t.type === "income")
+  const previousExpenses = previousPeriodTransactions.filter(t => t.type === "expense")
+
+  // Calculate analytics
+  const spendingInsights = calculateSpendingInsights(currentExpenses, currentIncome)
+  const trendComparison = calculateTrendComparison(currentExpenses, previousExpenses)
+  const availableToSpend = calculateAvailableToSpend(currentIncome, currentExpenses, goals, period)
+  const dailySpendingData = getDailySpendingData(
+    currentExpenses,
+    currentPeriodRange.startDate,
+    currentPeriodRange.endDate
+  )
+  const categoryComparison = getCategoryComparison(currentExpenses, previousExpenses)
+
+  // Calculate category totals for pie chart
+  const categoryTotals = currentExpenses.reduce(
     (acc, curr) => {
       const cat = curr.category_name || "Other"
       acc[cat] = (acc[cat] || 0) + Number(curr.amount)
@@ -62,9 +111,15 @@ export function SummarySection({ userId }: SummarySectionProps) {
 
   const primaryWallet = wallets.find((w) => w.is_primary) || wallets[0]
 
+  // Check if user has scholarship-type income
+  const hasScholarship = currentIncome.some(
+    t => t.category_name?.toLowerCase().includes("scholarship") ||
+         t.description?.toLowerCase().includes("scholarship")
+  )
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Summary Card */}
+      {/* Summary Card with Period Filter */}
       <div className="bg-white rounded-3xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-semibold" style={{ color: "#293F55" }}>
@@ -72,7 +127,7 @@ export function SummarySection({ userId }: SummarySectionProps) {
           </h2>
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value as any)}
+            onChange={(e) => setPeriod(e.target.value as Period)}
             className="px-3 py-1 rounded-full text-sm text-white"
             style={{ backgroundColor: "#72ADFD" }}
           >
@@ -82,99 +137,173 @@ export function SummarySection({ userId }: SummarySectionProps) {
           </select>
         </div>
 
-        <div className="text-center mb-6">
-          <div className="text-4xl font-bold mb-4" style={{ color: "#293F55" }}>
-            ₱{totalExpenses.toFixed(0)}
-          </div>
-          <div className="relative w-48 h-48 mx-auto">
-            <svg viewBox="0 0 100 100" className="transform -rotate-90">
-              {topCategories.map((_, index) => {
-                const total = topCategories.reduce((sum, [, val]) => sum + val, 0)
-                let offset = 0
-                return topCategories.slice(0, index + 1).map(([cat, val], i) => {
-                  const percent = (val / total) * 100
-                  const strokeDasharray = `${percent} ${100 - percent}`
-                  const currentOffset = offset
-                  if (i < index) offset += percent
+        <div className="text-sm text-gray-500 mb-4">{currentPeriodRange.label}</div>
 
-                  return i === index ? (
-                    <circle
-                      key={cat}
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke={colors[i]}
-                      strokeWidth="20"
-                      strokeDasharray={strokeDasharray}
-                      strokeDashoffset={-currentOffset}
-                    />
-                  ) : null
-                })
-              })}
-              <circle cx="50" cy="50" r="30" fill="white" />
-            </svg>
+        <div className="text-center mb-6">
+          <div className="text-4xl font-bold mb-2" style={{ color: "#293F55" }}>
+            ₱{spendingInsights.totalExpenses.toFixed(0)}
           </div>
+          <div className="text-sm text-gray-500 mb-4">Total Expenses</div>
+
+          {/* Trend indicator */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {trendComparison.trend === "up" && (
+              <span className="text-sm text-red-600">
+                ↑ {Math.abs(trendComparison.percentageChange).toFixed(1)}% vs previous {period}
+              </span>
+            )}
+            {trendComparison.trend === "down" && (
+              <span className="text-sm text-green-600">
+                ↓ {Math.abs(trendComparison.percentageChange).toFixed(1)}% vs previous {period}
+              </span>
+            )}
+            {trendComparison.trend === "stable" && (
+              <span className="text-sm text-gray-500">
+                Stable compared to previous {period}
+              </span>
+            )}
+          </div>
+
+          {topCategories.length > 0 && (
+            <div className="relative w-48 h-48 mx-auto">
+              <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                {topCategories.map((_, index) => {
+                  const total = topCategories.reduce((sum, [, val]) => sum + val, 0)
+                  let offset = 0
+                  return topCategories.slice(0, index + 1).map(([cat, val], i) => {
+                    const percent = (val / total) * 100
+                    const strokeDasharray = `${percent} ${100 - percent}`
+                    const currentOffset = offset
+                    if (i < index) offset += percent
+
+                    return i === index ? (
+                      <circle
+                        key={cat}
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke={colors[i]}
+                        strokeWidth="20"
+                        strokeDasharray={strokeDasharray}
+                        strokeDashoffset={-currentOffset}
+                      />
+                    ) : null
+                  })
+                })}
+                <circle cx="50" cy="50" r="30" fill="white" />
+              </svg>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {topCategories.map(([category, amount], index) => (
-            <div key={category} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[index] }} />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-gray-500 truncate">{category}</div>
-                <div className="text-sm font-semibold" style={{ color: "#293F55" }}>
-                  ₱{amount.toFixed(2)}
+        {topCategories.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {topCategories.map(([category, amount], index) => (
+              <div key={category} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[index] }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-gray-500 truncate">{category}</div>
+                  <div className="text-sm font-semibold" style={{ color: "#293F55" }}>
+                    ₱{amount.toFixed(2)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-400 text-sm">
+            No expenses recorded for this period
+          </div>
+        )}
       </div>
 
-      {/* Scholarship Card */}
-      {goals.length > 0 && (
+      {/* Available to Spend Card */}
+      <AvailableToSpendCard
+        data={availableToSpend}
+        periodLabel={currentPeriodRange.label}
+      />
+
+      {/* Spending Insights Card */}
+      <SpendingInsightsCard
+        insights={spendingInsights}
+        periodLabel={currentPeriodRange.label}
+      />
+
+      {/* Spending Trend Chart */}
+      <SpendingTrendChart
+        data={dailySpendingData}
+        periodLabel={currentPeriodRange.label}
+        trend={trendComparison}
+      />
+
+      {/* Category Comparison Chart */}
+      {categoryComparison.length > 0 && (
+        <CategoryComparisonChart
+          data={categoryComparison}
+          periodLabel={period}
+        />
+      )}
+
+      {/* Scholarship Card - Only show if user has scholarship income */}
+      {hasScholarship && goals.length > 0 && goals[0].name.toLowerCase().includes("scholarship") && (
         <div className="bg-white rounded-3xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold" style={{ color: "#293F55" }}>
               {goals[0].name}
             </h3>
             <span className="px-3 py-1 rounded-full text-sm text-white" style={{ backgroundColor: "#72ADFD" }}>
-              DOST-SEI
+              Active
             </span>
           </div>
+
           <div className="mb-4">
-            <div className="text-sm text-gray-500 mb-1">1st / 2nd Semester</div>
-            <div className="flex gap-2 mb-2">
-              <span className="px-3 py-1 rounded-full text-xs" style={{ backgroundColor: "#E0E0E0", color: "#293F55" }}>
-                STATUS: Accepted
-              </span>
+            <div className="text-sm text-gray-500 mb-2">Goal Progress</div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+              <div
+                className="h-2 rounded-full"
+                style={{
+                  width: `${Math.min((goals[0].current_amount / goals[0].target_amount) * 100, 100)}%`,
+                  backgroundColor: "#72ADFD"
+                }}
+              />
             </div>
-            <div className="flex gap-2">
-              <span className="px-3 py-1 rounded-full text-xs" style={{ backgroundColor: "#E0E0E0", color: "#293F55" }}>
-                PROGRESS: Received
-              </span>
-            </div>
-          </div>
-          <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#1E3A5F", color: "white" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-white/20" />
-              <span className="font-semibold">LANDBANK</span>
-            </div>
-            <div className="text-lg mb-4">**** 5678 9101 2131</div>
-            <div className="text-xs mb-1">CYRIL KURT TINAE</div>
-            <div className="flex gap-2">
-              <button className="px-4 py-1 rounded-full text-xs" style={{ backgroundColor: "white", color: "#1E3A5F" }}>
-                Link to Expenses
-              </button>
-              <button className="px-4 py-1 rounded-full text-xs" style={{ backgroundColor: "white", color: "#1E3A5F" }}>
-                View Details
-              </button>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">₱{goals[0].current_amount.toFixed(2)}</span>
+              <span className="text-gray-600">₱{goals[0].target_amount.toFixed(2)}</span>
             </div>
           </div>
-          <button className="w-full py-2 rounded-full text-sm" style={{ backgroundColor: "#E0E0E0", color: "#293F55" }}>
-            Send email
-          </button>
+
+          {/* Find scholarship income */}
+          {(() => {
+            const scholarshipIncome = currentIncome.find(
+              t => t.category_name?.toLowerCase().includes("scholarship") ||
+                   t.description?.toLowerCase().includes("scholarship")
+            )
+
+            return scholarshipIncome ? (
+              <div className="rounded-2xl p-4" style={{ backgroundColor: "#F5F5F5" }}>
+                <div className="text-sm font-medium mb-1" style={{ color: "#293F55" }}>
+                  Recent Scholarship Income
+                </div>
+                <div className="text-xs text-gray-500 mb-2">
+                  {new Date(scholarshipIncome.date).toLocaleDateString()}
+                </div>
+                <div className="text-2xl font-bold" style={{ color: "#72ADFD" }}>
+                  ₱{Number(scholarshipIncome.amount).toFixed(2)}
+                </div>
+                {scholarshipIncome.description && (
+                  <div className="text-xs text-gray-600 mt-2">
+                    {scholarshipIncome.description}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 text-center py-4">
+                No scholarship income recorded this period
+              </div>
+            )
+          })()}
         </div>
       )}
 

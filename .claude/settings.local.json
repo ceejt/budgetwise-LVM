@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Read(//c/**)",
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImplement Phase 1: Fix Goals System - Dynamic goals with full management\n\nThis PR implements a complete overhaul of the Goals system, replacing hardcoded \n\"Weekly Savings\" and \"Scholarship\" goals with a fully dynamic, database-driven \ngoal tracking system.\n\n## Features Implemented\n\n### Database Schema\n- Add new fields to goals table: category, auto_contribution_amount, \n  auto_contribution_frequency, paused, archived, completed_at, updated_at\n- Add status constraint for ''paused'' state\n- Create indexes for better query performance\n- Add trigger for automatic updated_at timestamp\n\n### Goal Management\n- **Create goals** with custom name, amount, timeframe, and category\n- **Contribute to goals** with real-time progress tracking\n- **Edit goals** with full field editing capabilities\n- **Pause/Resume** goals temporarily\n- **Mark as complete** manually or automatically when target reached\n- **Archive** completed or failed goals\n- **Delete** goals with confirmation\n\n### Visual Improvements\n- Color-coded progress bars (green/yellow/red based on progress)\n- Real-time progress percentage display\n- Days remaining counter with overdue warnings\n- Projected completion date calculation based on savings rate\n- Status badges (active/paused/completed/failed)\n- Category badges for goal organization\n- Empty state with helpful onboarding message\n- Responsive grid layout for multiple concurrent goals\n\n### New Components\n- `contribute-to-goal-dialog.tsx` - Add funds to goals\n- `edit-goal-dialog.tsx` - Comprehensive goal management\n- Enhanced `add-goal-dialog.tsx` with categories and auto-contributions\n- Completely rewritten `goals-section.tsx` with dynamic data\n\n### Bug Fixes\n- Fix null value handling in budget_amount fields\n- Fix controlled/uncontrolled input warnings\n- Add graceful handling for missing archived column (pre-migration)\n\n## Breaking Changes\n- Requires database migration: scripts/003_enhance_goals_table.sql\n\n## Testing\n- All TypeScript types updated\n- Null safety checks added\n- Error handling improved\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(node -e:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7",
+    "playwright"
+  ]
+}
