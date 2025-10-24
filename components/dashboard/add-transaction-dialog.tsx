@@ -18,8 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createClient } from "@/lib/supabase/client"
-import type { Category, RecurrencePattern } from "@/lib/types"
-import { Plus, Repeat } from "lucide-react"
+import type { Category, RecurrencePattern, EWallet } from "@/lib/types"
+import { Plus, Repeat, Wallet } from "lucide-react"
 
 interface AddTransactionDialogProps {
   userId: string
@@ -30,8 +30,10 @@ interface AddTransactionDialogProps {
 export function AddTransactionDialog({ userId, type, onSuccess }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [wallets, setWallets] = useState<EWallet[]>([])
   const [amount, setAmount] = useState("")
   const [categoryId, setCategoryId] = useState("")
+  const [walletId, setWalletId] = useState("")
   const [description, setDescription] = useState("")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [isLoading, setIsLoading] = useState(false)
@@ -47,12 +49,30 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
   useEffect(() => {
     if (open) {
       fetchCategories()
+      fetchWallets()
     }
   }, [open])
 
   const fetchCategories = async () => {
     const { data } = await supabase.from("categories").select("*").eq("user_id", userId)
     if (data) setCategories(data)
+  }
+
+  const fetchWallets = async () => {
+    const { data } = await supabase
+      .from("e_wallets")
+      .select("*")
+      .eq("user_id", userId)
+      .order("is_primary", { ascending: false })
+
+    if (data) {
+      setWallets(data)
+      // Set primary wallet as default
+      const primaryWallet = data.find(w => w.is_primary)
+      if (primaryWallet && !walletId) {
+        setWalletId(primaryWallet.id)
+      }
+    }
   }
 
   const calculateNextOccurrence = (startDate: string, pattern: RecurrencePattern): string => {
@@ -90,6 +110,7 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
         amount: Number.parseFloat(amount),
         category_id: categoryId || null,
         category_name: selectedCategory?.name || null,
+        wallet_id: walletId || null,
         description,
         date,
       }
@@ -114,6 +135,7 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
       setOpen(false)
       setAmount("")
       setCategoryId("")
+      setWalletId("")
       setDescription("")
       setDate(new Date().toISOString().split("T")[0])
       setIsRecurring(false)
@@ -173,6 +195,31 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="wallet" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              E-Wallet (Optional)
+            </Label>
+            <Select value={walletId || "none"} onValueChange={(value) => setWalletId(value === "none" ? "" : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a wallet (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No wallet</SelectItem>
+                {wallets.map((wallet) => (
+                  <SelectItem key={wallet.id} value={wallet.id}>
+                    {wallet.wallet_type.toUpperCase()} - {wallet.account_number}
+                    {wallet.is_primary && " (Primary)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {wallets.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No wallets found. Add a wallet in Summary section to link transactions.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>

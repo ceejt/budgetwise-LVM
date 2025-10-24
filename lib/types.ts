@@ -74,6 +74,10 @@ export interface Transaction {
   description: string | null
   date: string
   created_at: string
+  // Wallet integration fields
+  wallet_id?: string | null
+  is_transfer?: boolean
+  linked_transaction_id?: string | null
   // Recurring transaction fields
   is_recurring?: boolean
   recurrence_pattern?: RecurrencePattern | null

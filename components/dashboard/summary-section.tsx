@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client"
 import type { Transaction, Goal, EWallet } from "@/lib/types"
 import { AddWalletDialog } from "./add-wallet-dialog"
 import { EditWalletDialog } from "./edit-wallet-dialog"
+import { CashInOutDialog } from "./cash-in-out-dialog"
+import { WalletTransferDialog } from "./wallet-transfer-dialog"
 import { SpendingInsightsCard } from "./spending-insights-card"
 import { AvailableToSpendCard } from "./available-to-spend-card"
 import { BudgetInsightsCard } from "./budget-insights-card"
@@ -31,6 +33,13 @@ export function SummarySection({ userId }: SummarySectionProps) {
   const [wallets, setWallets] = useState<EWallet[]>([])
   const [period, setPeriod] = useState<Period>("monthly")
   const [editingWallet, setEditingWallet] = useState<EWallet | null>(null)
+  const [cashInOutDialog, setCashInOutDialog] = useState<{
+    open: boolean
+    type: "cash-in" | "cash-out"
+  }>({
+    open: false,
+    type: "cash-in",
+  })
   const supabase = createClient()
 
   useEffect(() => {
@@ -317,7 +326,10 @@ export function SummarySection({ userId }: SummarySectionProps) {
           <h3 className="text-xl font-semibold" style={{ color: "#293F55" }}>
             E-Wallet
           </h3>
-          {wallets.length === 0 && <AddWalletDialog userId={userId} onSuccess={fetchData} />}
+          <div className="flex gap-2">
+            {wallets.length >= 2 && <WalletTransferDialog userId={userId} onSuccess={fetchData} />}
+            {wallets.length === 0 && <AddWalletDialog userId={userId} onSuccess={fetchData} />}
+          </div>
         </div>
         {primaryWallet ? (
           <>
@@ -335,10 +347,18 @@ export function SummarySection({ userId }: SummarySectionProps) {
               <div className="text-lg mb-4">{primaryWallet.account_number}</div>
               <div className="text-xs mb-3">{primaryWallet.account_name || "User"}</div>
               <div className="flex gap-2">
-                <button className="px-4 py-1 rounded-full text-xs bg-white" style={{ color: "#007DFF" }}>
+                <button
+                  onClick={() => setCashInOutDialog({ open: true, type: "cash-in" })}
+                  className="px-4 py-1 rounded-full text-xs bg-white transition-opacity hover:opacity-80"
+                  style={{ color: "#007DFF" }}
+                >
                   Cash In
                 </button>
-                <button className="px-4 py-1 rounded-full text-xs bg-white" style={{ color: "#007DFF" }}>
+                <button
+                  onClick={() => setCashInOutDialog({ open: true, type: "cash-out" })}
+                  className="px-4 py-1 rounded-full text-xs bg-white transition-opacity hover:opacity-80"
+                  style={{ color: "#007DFF" }}
+                >
                   Cash Out
                 </button>
               </div>
@@ -379,6 +399,18 @@ export function SummarySection({ userId }: SummarySectionProps) {
             fetchData()
           }}
           onClose={() => setEditingWallet(null)}
+        />
+      )}
+
+      {primaryWallet && (
+        <CashInOutDialog
+          userId={userId}
+          walletId={primaryWallet.id}
+          walletName={primaryWallet.wallet_type.toUpperCase()}
+          type={cashInOutDialog.type}
+          open={cashInOutDialog.open}
+          onOpenChange={(open) => setCashInOutDialog({ ...cashInOutDialog, open })}
+          onSuccess={fetchData}
         />
       )}
     </div>
