@@ -158,3 +158,32 @@ export interface Wallet {
   is_primary: boolean
   created_at: string
 }
+
+// Transaction filtering and sorting types
+export type SortField = "date" | "amount" | "category"
+export type SortOrder = "asc" | "desc"
+
+export interface TransactionFilters {
+  dateFrom?: string | null
+  dateTo?: string | null
+  categoryIds?: string[]
+  amountMin?: number | null
+  amountMax?: number | null
+  walletIds?: string[]
+  searchQuery?: string | null
+}
+
+export interface TransactionSort {
+  field: SortField
+  order: SortOrder
+}
+
+export interface FilterPreset {
+  id: string
+  user_id: string
+  name: string
+  filters: TransactionFilters
+  sort?: TransactionSort
+  created_at: string
+  updated_at: string
+}

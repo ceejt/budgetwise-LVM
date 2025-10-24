@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { Transaction } from "@/lib/types"
+import type { Transaction, TransactionFilters, TransactionSort } from "@/lib/types"
 import { AddTransactionDialog } from "./add-transaction-dialog"
+import { TransactionFiltersComponent } from "./transaction-filters"
+import { buildTransactionQuery } from "@/lib/utils/filter-builder"
 
 interface IncomeSectionProps {
   userId: string
@@ -11,12 +13,33 @@ interface IncomeSectionProps {
 
 export function IncomeSection({ userId }: IncomeSectionProps) {
   const [income, setIncome] = useState<Transaction[]>([])
+  const [filteredIncome, setFilteredIncome] = useState<Transaction[]>([])
   const [total, setTotal] = useState(0)
+  const [filteredTotal, setFilteredTotal] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
+  const [filters, setFilters] = useState<TransactionFilters>({
+    dateFrom: null,
+    dateTo: null,
+    categoryIds: [],
+    amountMin: null,
+    amountMax: null,
+    walletIds: [],
+    searchQuery: null,
+  })
+  const [sort, setSort] = useState<TransactionSort>({
+    field: "date",
+    order: "desc",
+  })
   const supabase = createClient()
 
   useEffect(() => {
     fetchIncome()
+    fetchTotalCount()
   }, [userId])
+
+  useEffect(() => {
+    fetchFilteredIncome()
+  }, [userId, filters, sort])
 
   const fetchIncome = async () => {
     const { data } = await supabase.from("transactions").select("*").eq("user_id", userId).eq("type", "income")
@@ -26,6 +49,28 @@ export function IncomeSection({ userId }: IncomeSectionProps) {
       const sum = data.reduce((acc, curr) => acc + Number(curr.amount), 0)
       setTotal(sum)
     }
+  }
+
+  const fetchFilteredIncome = async () => {
+    const query = buildTransactionQuery(supabase, userId, "income", filters, sort)
+
+    const { data } = await query
+
+    if (data) {
+      setFilteredIncome(data)
+      const sum = data.reduce((acc, curr) => acc + Number(curr.amount), 0)
+      setFilteredTotal(sum)
+    }
+  }
+
+  const fetchTotalCount = async () => {
+    const { count } = await supabase
+      .from("transactions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("type", "income")
+
+    if (count !== null) setTotalCount(count)
   }
 
   const scholarshipAmount = income.find((i) => i.category_name === "Scholarship")?.amount || 0
@@ -42,17 +87,35 @@ export function IncomeSection({ userId }: IncomeSectionProps) {
           Income
         </h2>
         <div className="flex gap-2">
-          <AddTransactionDialog userId={userId} type="income" onSuccess={fetchIncome} />
-          <span className="px-3 py-1 rounded-full text-sm text-white" style={{ backgroundColor: "#72ADFD" }}>
-            Monthly
-          </span>
+          <AddTransactionDialog userId={userId} type="income" onSuccess={() => { fetchIncome(); fetchFilteredIncome(); }} />
         </div>
       </div>
+
+      {/* Filters and Sorting */}
       <div className="mb-4">
-        <div className="text-sm text-gray-500 mb-1">Total</div>
-        <div className="text-3xl font-bold" style={{ color: "#293F55" }}>
-          ₱ {total.toFixed(0)}
+        <TransactionFiltersComponent
+          userId={userId}
+          filters={filters}
+          sort={sort}
+          onFiltersChange={setFilters}
+          onSortChange={setSort}
+          totalCount={totalCount}
+          filteredCount={filteredIncome.length}
+        />
+      </div>
+
+      <div className="mb-4">
+        <div className="text-sm text-gray-500 mb-1">
+          {filters.dateFrom || filters.dateTo || (filters.categoryIds && filters.categoryIds.length > 0) ? "Filtered Total" : "Total"}
         </div>
+        <div className="text-3xl font-bold" style={{ color: "#293F55" }}>
+          ₱ {filteredTotal.toFixed(0)}
+        </div>
+        {(filters.dateFrom || filters.dateTo || (filters.categoryIds && filters.categoryIds.length > 0)) && (
+          <div className="text-sm text-gray-400 mt-1">
+            All-time total: ₱ {total.toFixed(0)}
+          </div>
+        )}
       </div>
       {total > 0 && (
         <>

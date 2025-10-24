@@ -4,10 +4,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import type { Transaction } from "@/lib/types"
+import type { Transaction, TransactionFilters, TransactionSort } from "@/lib/types"
 import { AddTransactionDialog } from "./add-transaction-dialog"
 import { EditTransactionDialog } from "./edit-transaction-dialog"
 import { RecurringTransactionsDialog } from "./recurring-transactions-dialog"
+import { TransactionFiltersComponent } from "./transaction-filters"
+import { buildTransactionQuery } from "@/lib/utils/filter-builder"
 
 interface ExpensesSectionProps {
   userId: string
@@ -15,29 +17,45 @@ interface ExpensesSectionProps {
 
 export function ExpensesSection({ userId }: ExpensesSectionProps) {
   const [expenses, setExpenses] = useState<Transaction[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [showAll, setShowAll] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [filters, setFilters] = useState<TransactionFilters>({
+    dateFrom: null,
+    dateTo: null,
+    categoryIds: [],
+    amountMin: null,
+    amountMax: null,
+    walletIds: [],
+    searchQuery: null,
+  })
+  const [sort, setSort] = useState<TransactionSort>({
+    field: "date",
+    order: "desc",
+  })
   const supabase = createClient()
 
   useEffect(() => {
     fetchExpenses()
-  }, [userId])
+    fetchTotalCount()
+  }, [userId, filters, sort, showAll])
 
   const fetchExpenses = async () => {
-    const query = supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("type", "expense")
-      .order("date", { ascending: false })
-
-    if (!showAll) {
-      query.limit(5)
-    }
+    const query = buildTransactionQuery(supabase, userId, "expense", filters, sort, showAll ? undefined : 5)
 
     const { data } = await query
 
     if (data) setExpenses(data)
+  }
+
+  const fetchTotalCount = async () => {
+    const { count } = await supabase
+      .from("transactions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("type", "expense")
+
+    if (count !== null) setTotalCount(count)
   }
 
   const handleDelete = async (id: string) => {
@@ -57,14 +75,6 @@ export function ExpensesSection({ userId }: ExpensesSectionProps) {
           <h2 className="text-2xl font-semibold" style={{ color: "#293F55" }}>
             Expenses
           </h2>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-sm text-gray-500">Sort by:</span>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-sm" style={{ backgroundColor: "#E0E0E0", color: "#293F55" }}>
-                Date: Recent
-              </span>
-            </div>
-          </div>
         </div>
         <div className="flex gap-2">
           <RecurringTransactionsDialog userId={userId} onSuccess={fetchExpenses} />
@@ -75,12 +85,24 @@ export function ExpensesSection({ userId }: ExpensesSectionProps) {
             style={{ backgroundColor: "#72ADFD" }}
             onClick={() => {
               setShowAll(!showAll)
-              setTimeout(fetchExpenses, 0)
             }}
           >
             {showAll ? "Show Less" : "All Items"}
           </Button>
         </div>
+      </div>
+
+      {/* Filters and Sorting */}
+      <div className="mb-4">
+        <TransactionFiltersComponent
+          userId={userId}
+          filters={filters}
+          sort={sort}
+          onFiltersChange={setFilters}
+          onSortChange={setSort}
+          totalCount={totalCount}
+          filteredCount={expenses.length}
+        />
       </div>
 
       {/* Table Header */}
