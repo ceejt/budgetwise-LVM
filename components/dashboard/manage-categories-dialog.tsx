@@ -97,8 +97,8 @@ export function ManageCategoriesDialog({ userId, onSuccess }: ManageCategoriesDi
                   <Input
                     type="number"
                     className="w-32"
-                    value={category.budget_amount}
-                    onChange={(e) => handleUpdateBudget(category.id, Number.parseFloat(e.target.value))}
+                    value={category.budget_amount || 0}
+                    onChange={(e) => handleUpdateBudget(category.id, Number.parseFloat(e.target.value) || 0)}
                   />
                   <button
                     onClick={() => handleDeleteCategory(category.id)}
