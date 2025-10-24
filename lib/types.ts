@@ -24,6 +24,8 @@ export interface Category {
   created_at: string
 }
 
+export type RecurrencePattern = "daily" | "weekly" | "biweekly" | "monthly" | "yearly"
+
 export interface Transaction {
   id: string
   user_id: string
@@ -34,6 +36,14 @@ export interface Transaction {
   description: string | null
   date: string
   created_at: string
+  // Recurring transaction fields
+  is_recurring?: boolean
+  recurrence_pattern?: RecurrencePattern | null
+  recurrence_end_date?: string | null
+  parent_transaction_id?: string | null
+  is_template?: boolean
+  next_occurrence_date?: string | null
+  recurrence_enabled?: boolean
 }
 
 export interface Goal {

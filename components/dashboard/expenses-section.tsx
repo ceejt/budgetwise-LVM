@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import type { Transaction } from "@/lib/types"
 import { AddTransactionDialog } from "./add-transaction-dialog"
 import { EditTransactionDialog } from "./edit-transaction-dialog"
+import { RecurringTransactionsDialog } from "./recurring-transactions-dialog"
 
 interface ExpensesSectionProps {
   userId: string
@@ -66,6 +67,7 @@ export function ExpensesSection({ userId }: ExpensesSectionProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          <RecurringTransactionsDialog userId={userId} onSuccess={fetchExpenses} />
           <AddTransactionDialog userId={userId} type="expense" onSuccess={fetchExpenses} />
           <Button
             size="sm"

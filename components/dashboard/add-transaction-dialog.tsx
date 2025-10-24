@@ -16,9 +16,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { createClient } from "@/lib/supabase/client"
-import type { Category } from "@/lib/types"
-import { Plus } from "lucide-react"
+import type { Category, RecurrencePattern } from "@/lib/types"
+import { Plus, Repeat } from "lucide-react"
 
 interface AddTransactionDialogProps {
   userId: string
@@ -34,6 +35,13 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
   const [description, setDescription] = useState("")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [isLoading, setIsLoading] = useState(false)
+
+  // Recurring transaction states
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>("monthly")
+  const [hasEndDate, setHasEndDate] = useState(false)
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("")
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -47,6 +55,28 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
     if (data) setCategories(data)
   }
 
+  const calculateNextOccurrence = (startDate: string, pattern: RecurrencePattern): string => {
+    const date = new Date(startDate)
+    switch (pattern) {
+      case "daily":
+        date.setDate(date.getDate() + 1)
+        break
+      case "weekly":
+        date.setDate(date.getDate() + 7)
+        break
+      case "biweekly":
+        date.setDate(date.getDate() + 14)
+        break
+      case "monthly":
+        date.setMonth(date.getMonth() + 1)
+        break
+      case "yearly":
+        date.setFullYear(date.getFullYear() + 1)
+        break
+    }
+    return date.toISOString().split("T")[0]
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -54,7 +84,7 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
     try {
       const selectedCategory = categories.find((c) => c.id === categoryId)
 
-      const { error } = await supabase.from("transactions").insert({
+      const transactionData: any = {
         user_id: userId,
         type,
         amount: Number.parseFloat(amount),
@@ -62,7 +92,22 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
         category_name: selectedCategory?.name || null,
         description,
         date,
-      })
+      }
+
+      // Add recurring transaction fields if enabled
+      if (isRecurring) {
+        transactionData.is_recurring = true
+        transactionData.is_template = true
+        transactionData.recurrence_pattern = recurrencePattern
+        transactionData.recurrence_enabled = true
+        transactionData.next_occurrence_date = calculateNextOccurrence(date, recurrencePattern)
+
+        if (hasEndDate && recurrenceEndDate) {
+          transactionData.recurrence_end_date = recurrenceEndDate
+        }
+      }
+
+      const { error } = await supabase.from("transactions").insert(transactionData)
 
       if (error) throw error
 
@@ -71,6 +116,10 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
       setCategoryId("")
       setDescription("")
       setDate(new Date().toISOString().split("T")[0])
+      setIsRecurring(false)
+      setRecurrencePattern("monthly")
+      setHasEndDate(false)
+      setRecurrenceEndDate("")
       onSuccess()
     } catch (error) {
       console.error("Error adding transaction:", error)
@@ -138,6 +187,64 @@ export function AddTransactionDialog({ userId, type, onSuccess }: AddTransaction
             <Label htmlFor="date">Date</Label>
             <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
           </div>
+
+          {/* Recurring Transaction Section */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center space-x-2">
+              <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(checked) => setIsRecurring(!!checked)} />
+              <Label htmlFor="recurring" className="flex items-center gap-2 cursor-pointer">
+                <Repeat className="h-4 w-4" />
+                This is a recurring {type}
+              </Label>
+            </div>
+
+            {isRecurring && (
+              <div className="space-y-3 pl-6">
+                <div className="space-y-2">
+                  <Label htmlFor="recurrence-pattern">Frequency</Label>
+                  <Select value={recurrencePattern} onValueChange={(value) => setRecurrencePattern(value as RecurrencePattern)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="biweekly">Every 2 Weeks</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="has-end-date" checked={hasEndDate} onCheckedChange={(checked) => setHasEndDate(!!checked)} />
+                  <Label htmlFor="has-end-date" className="cursor-pointer">Set end date</Label>
+                </div>
+
+                {hasEndDate && (
+                  <div className="space-y-2">
+                    <Label htmlFor="end-date">End Date</Label>
+                    <Input
+                      id="end-date"
+                      type="date"
+                      value={recurrenceEndDate}
+                      onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                      min={date}
+                    />
+                  </div>
+                )}
+
+                <p className="text-sm text-muted-foreground">
+                  {!hasEndDate
+                    ? "This will repeat until you cancel it"
+                    : recurrenceEndDate
+                      ? `This will repeat until ${new Date(recurrenceEndDate).toLocaleDateString()}`
+                      : "Select an end date"}
+                </p>
+              </div>
+            )}
+          </div>
+
           <Button
             type="submit"
             className="w-full text-white"

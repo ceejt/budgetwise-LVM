@@ -1,0 +1,17 @@
+name: Process Recurring Transactions
+
+on:
+  schedule:
+    # Run daily at 1:00 AM UTC (9:00 AM PHT)
+    - cron: '0 1 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  process-recurring:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process recurring transactions
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-recurring" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json"
