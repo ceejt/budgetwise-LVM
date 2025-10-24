@@ -7,6 +7,7 @@ import { AddWalletDialog } from "./add-wallet-dialog"
 import { EditWalletDialog } from "./edit-wallet-dialog"
 import { SpendingInsightsCard } from "./spending-insights-card"
 import { AvailableToSpendCard } from "./available-to-spend-card"
+import { BudgetInsightsCard } from "./budget-insights-card"
 import { SpendingTrendChart, CategoryComparisonChart } from "./spending-trend-chart"
 import {
   type Period,
@@ -223,6 +224,9 @@ export function SummarySection({ userId }: SummarySectionProps) {
         data={availableToSpend}
         periodLabel={currentPeriodRange.label}
       />
+
+      {/* Budget Insights Card */}
+      <BudgetInsightsCard userId={userId} />
 
       {/* Spending Insights Card */}
       <SpendingInsightsCard

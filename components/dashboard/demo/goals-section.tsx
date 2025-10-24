@@ -91,6 +91,8 @@ export function GoalsSection({ goals, setGoals, categories, setCategories }: Goa
       icon: newCategoryIcon,
       color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
       budget_amount: Number.parseFloat(newCategoryBudget),
+      budget_period: "monthly",
+      is_active: true,
       created_at: new Date().toISOString(),
     }
     setCategories([...categories, newCategory])

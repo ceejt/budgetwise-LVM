@@ -3,13 +3,16 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import type { Goal, Category } from "@/lib/types"
+import type { Goal, Category, Transaction, BudgetInsight } from "@/lib/types"
 import { AddGoalDialog } from "./add-goal-dialog"
 import { EditGoalDialog } from "./edit-goal-dialog"
 import { ContributeToGoalDialog } from "./contribute-to-goal-dialog"
 import { ManageCategoriesDialog } from "./manage-categories-dialog"
+import { BudgetOverviewDialog } from "./budget-overview-dialog"
 import { Progress } from "@/components/ui/progress"
-import { Target, Calendar, TrendingUp, AlertCircle } from "lucide-react"
+import { BudgetProgressBarCompact } from "@/components/ui/budget-progress-bar"
+import { calculateBudgetInsight } from "@/lib/utils/budget-calculator"
+import { Target, Calendar, TrendingUp, AlertCircle, PieChart } from "lucide-react"
 
 interface GoalsSectionProps {
   userId: string
@@ -18,13 +21,22 @@ interface GoalsSectionProps {
 export function GoalsSection({ userId }: GoalsSectionProps) {
   const [goals, setGoals] = useState<Goal[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [budgetInsights, setBudgetInsights] = useState<BudgetInsight[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
     fetchGoals()
     fetchCategories()
+    fetchTransactions()
   }, [userId])
+
+  useEffect(() => {
+    if (categories.length > 0 && transactions.length > 0) {
+      calculateCategoryInsights()
+    }
+  }, [categories, transactions])
 
   const fetchGoals = async () => {
     setIsLoading(true)
@@ -50,9 +62,47 @@ export function GoalsSection({ userId }: GoalsSectionProps) {
   }
 
   const fetchCategories = async () => {
-    const { data } = await supabase.from("categories").select("*").eq("user_id", userId).limit(4)
+    const { data } = await supabase
+      .from("categories")
+      .select("*")
+      .eq("user_id", userId)
+      .order("name")
 
-    if (data) setCategories(data)
+    if (data) {
+      // Ensure is_active defaults to true if field doesn't exist
+      const categoriesWithDefaults = data.map((cat) => ({
+        ...cat,
+        is_active: cat.is_active ?? true,
+        budget_period: cat.budget_period ?? "monthly",
+      }))
+      setCategories(categoriesWithDefaults)
+    }
+  }
+
+  const fetchTransactions = async () => {
+    const { data } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("type", "expense")
+      .order("date", { ascending: false })
+      .limit(500) // Last 500 transactions for calculations
+
+    if (data) setTransactions(data)
+  }
+
+  const calculateCategoryInsights = () => {
+    const insights = categories
+      .filter((cat) => cat.is_active && cat.budget_amount > 0)
+      .map((cat) => calculateBudgetInsight(cat, transactions))
+      .sort((a, b) => {
+        // Sort by status priority
+        const statusPriority = { exceeded: 0, critical: 1, warning: 2, ok: 3 }
+        return statusPriority[a.status] - statusPriority[b.status]
+      })
+      .slice(0, 4) // Top 4 for display
+
+    setBudgetInsights(insights)
   }
 
   const getProgressColor = (progress: number): string => {
@@ -260,41 +310,81 @@ export function GoalsSection({ userId }: GoalsSectionProps) {
             )
           })}
 
-          {/* Categories Budget Summary Card */}
+          {/* Budget Tracking Card */}
           <div className="bg-gray-50 rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg" style={{ color: "#293F55" }}>
-                Budget Summary
-              </h3>
-              <span className="px-3 py-1 rounded-full text-xs text-white" style={{ backgroundColor: "#72ADFD" }}>
-                Weekly
-              </span>
-            </div>
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-sm text-gray-500 mb-1">Total Budget</div>
-              <div className="text-3xl font-bold" style={{ color: "#72ADFD" }}>
-                ₱ {totalBudget.toFixed(0)}
-              </div>
-            </div>
-            <div className="flex items-center justify-between py-2 border-t">
-              <span className="text-sm text-gray-600">Manage categories</span>
-              <ManageCategoriesDialog userId={userId} onSuccess={fetchCategories} />
-            </div>
-            <div className="space-y-2">
-              {categories.slice(0, 4).map((category) => (
-                <div
-                  key={category.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg transition-transform hover:scale-105"
-                  style={{ backgroundColor: category.color || "#72ADFD" }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-lg">{category.icon}</span>
-                    <span className="text-white text-sm font-medium">{category.name}</span>
-                  </div>
-                  <span className="text-white font-semibold">₱{(category.budget_amount || 0).toFixed(0)}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "#72ADFD" }}>
+                  <PieChart className="h-4 w-4 text-white" />
                 </div>
-              ))}
+                <h3 className="font-semibold text-lg" style={{ color: "#293F55" }}>
+                  Budget Tracking
+                </h3>
+              </div>
+              <BudgetOverviewDialog
+                userId={userId}
+                trigger={
+                  <Button size="sm" variant="outline">
+                    View All
+                  </Button>
+                }
+              />
             </div>
+
+            {budgetInsights.length === 0 ? (
+              <div className="text-center py-8">
+                <PieChart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500 text-sm mb-4">No budget tracking data yet.</p>
+                <ManageCategoriesDialog userId={userId} onSuccess={fetchCategories} />
+              </div>
+            ) : (
+              <>
+                {/* Top Budget Alerts */}
+                <div className="space-y-3">
+                  {budgetInsights.map((insight) => (
+                    <div
+                      key={insight.category_id}
+                      className="bg-white rounded-lg p-3 space-y-2"
+                    >
+                      <BudgetProgressBarCompact
+                        spent={insight.amount_spent}
+                        budget={insight.budget_amount}
+                        utilization={insight.utilization_percentage}
+                        status={insight.status}
+                        categoryName={insight.category_name}
+                      />
+                      {insight.suggestion && (
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {insight.suggestion}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                  <div className="bg-white rounded-lg p-2 text-center">
+                    <div className="text-xs text-gray-500">Total Budget</div>
+                    <div className="text-sm font-bold" style={{ color: "#72ADFD" }}>
+                      ₱{totalBudget.toFixed(0)}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2 text-center">
+                    <div className="text-xs text-gray-500">Categories</div>
+                    <div className="text-sm font-bold" style={{ color: "#293F55" }}>
+                      {categories.length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Manage Link */}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-sm text-gray-600">Manage categories</span>
+                  <ManageCategoriesDialog userId={userId} onSuccess={fetchCategories} />
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

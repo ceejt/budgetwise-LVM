@@ -89,6 +89,8 @@ export default function DemoPage() {
       icon: "🍔",
       color: "#293F55",
       budget_amount: 400,
+      budget_period: "monthly",
+      is_active: true,
       created_at: new Date().toISOString(),
     },
     {
@@ -98,6 +100,8 @@ export default function DemoPage() {
       icon: "🚌",
       color: "#72ADFD",
       budget_amount: 200,
+      budget_period: "monthly",
+      is_active: true,
       created_at: new Date().toISOString(),
     },
     {
@@ -107,6 +111,8 @@ export default function DemoPage() {
       icon: "🛒",
       color: "#50C878",
       budget_amount: 1500,
+      budget_period: "monthly",
+      is_active: true,
       created_at: new Date().toISOString(),
     },
     {
@@ -116,6 +122,8 @@ export default function DemoPage() {
       icon: "📦",
       color: "#FFB347",
       budget_amount: 200,
+      budget_period: "monthly",
+      is_active: true,
       created_at: new Date().toISOString(),
     },
   ]);

@@ -14,6 +14,8 @@ export interface Profile {
   updated_at: string
 }
 
+export type BudgetPeriod = "weekly" | "monthly" | "yearly"
+
 export interface Category {
   id: string
   user_id: string
@@ -21,7 +23,43 @@ export interface Category {
   icon: string | null
   budget_amount: number
   color: string | null
+  budget_period: BudgetPeriod
+  description?: string | null
+  is_active: boolean
   created_at: string
+  updated_at?: string
+}
+
+export interface BudgetSpending {
+  category_id: string
+  user_id: string
+  category_name: string
+  icon: string | null
+  color: string | null
+  budget_amount: number
+  budget_period: BudgetPeriod
+  is_active: boolean
+  spent_last_7_days: number
+  spent_this_month: number
+  spent_this_year: number
+  spent_previous_7_days: number
+  spent_last_month: number
+  total_transactions: number
+}
+
+export type BudgetStatus = "ok" | "warning" | "critical" | "exceeded"
+
+export interface BudgetInsight {
+  category_id: string
+  category_name: string
+  status: BudgetStatus
+  utilization_percentage: number
+  amount_spent: number
+  amount_remaining: number
+  budget_amount: number
+  period: BudgetPeriod
+  comparison_text?: string // e.g., "↑15% vs last week"
+  suggestion?: string // e.g., "Consider reducing Entertainment budget"
 }
 
 export type RecurrencePattern = "daily" | "weekly" | "biweekly" | "monthly" | "yearly"
