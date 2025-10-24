@@ -45,8 +45,15 @@ export interface Goal {
   current_amount: number
   start_date: string
   end_date: string
-  status: "active" | "completed" | "failed"
+  status: "active" | "completed" | "failed" | "paused"
+  category?: string | null
+  auto_contribution_amount?: number | null
+  auto_contribution_frequency?: "daily" | "weekly" | "monthly" | null
+  paused?: boolean
+  archived?: boolean
+  completed_at?: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface FinancialTip {
