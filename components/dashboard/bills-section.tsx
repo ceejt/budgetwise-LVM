@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { Calendar, List, Check, X, Edit2, Trash2, ExternalLink, AlertCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { AddBillDialog } from "./add-bill-dialog"
 import {
   fetchUpcomingBills,
   fetchBillAnalytics,
@@ -27,6 +27,12 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import type { UpcomingBill, BillAnalytics, Category, EWallet } from "@/lib/types"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns"
+
+// Lazy load dialogs - only loaded when user interacts
+const AddBillDialog = dynamic(
+  () => import("./add-bill-dialog").then((mod) => ({ default: mod.AddBillDialog })),
+  { ssr: false }
+)
 
 interface BillsSectionProps {
   categories: Category[]

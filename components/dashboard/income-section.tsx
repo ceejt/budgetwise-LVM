@@ -1,16 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import type { Transaction, TransactionFilters, TransactionSort, ExportFormat } from '@/lib/types'
-import { AddTransactionDialog } from './add-transaction-dialog'
 import { TransactionFiltersComponent } from './transaction-filters'
-import { ExportDialog } from './export-dialog'
 import { buildTransactionQuery } from '@/lib/utils/filter-builder'
-import { exportTransactionsToCSV } from '@/lib/utils/export-csv'
-import { exportTransactionsToExcel } from '@/lib/utils/export-xlsx'
-import { exportTransactionsToPDF } from '@/lib/utils/export-pdf'
 import { format } from 'date-fns'
+
+// Lazy load dialogs - only loaded when user interacts
+const AddTransactionDialog = dynamic(
+  () => import('./add-transaction-dialog').then((mod) => ({ default: mod.AddTransactionDialog })),
+  { ssr: false }
+)
+const ExportDialog = dynamic(
+  () => import('./export-dialog').then((mod) => ({ default: mod.ExportDialog })),
+  { ssr: false }
+)
 
 interface IncomeSectionProps {
   userId: string
@@ -104,15 +110,20 @@ export function IncomeSection({ userId }: IncomeSectionProps) {
 
     const filename = `income_${format(new Date(), 'yyyy-MM-dd')}`
 
-    // Export based on format
+    // Lazy load export utilities - only when user actually exports
     switch (exportFormat) {
-      case 'csv':
+      case 'csv': {
+        const { exportTransactionsToCSV } = await import('@/lib/utils/export-csv')
         exportTransactionsToCSV(data, filename)
         break
-      case 'xlsx':
+      }
+      case 'xlsx': {
+        const { exportTransactionsToExcel } = await import('@/lib/utils/export-xlsx')
         exportTransactionsToExcel(data, filename)
         break
-      case 'pdf':
+      }
+      case 'pdf': {
+        const { exportTransactionsToPDF } = await import('@/lib/utils/export-pdf')
         const dateRange = filters.dateFrom && filters.dateTo
           ? { from: filters.dateFrom, to: filters.dateTo }
           : undefined
@@ -122,6 +133,7 @@ export function IncomeSection({ userId }: IncomeSectionProps) {
           includeMetadata: options.includeMetadata,
         })
         break
+      }
     }
   }
 

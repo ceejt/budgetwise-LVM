@@ -1,18 +1,36 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import type { Goal, Category, Transaction, BudgetInsight } from "@/lib/types"
-import { AddGoalDialog } from "./add-goal-dialog"
-import { EditGoalDialog } from "./edit-goal-dialog"
-import { ContributeToGoalDialog } from "./contribute-to-goal-dialog"
-import { ManageCategoriesDialog } from "./manage-categories-dialog"
-import { BudgetOverviewDialog } from "./budget-overview-dialog"
 import { Progress } from "@/components/ui/progress"
 import { BudgetProgressBarCompact } from "@/components/ui/budget-progress-bar"
 import { calculateBudgetInsight } from "@/lib/utils/budget-calculator"
 import { Target, Calendar, TrendingUp, AlertCircle, PieChart } from "lucide-react"
+
+// Lazy load dialogs - only loaded when user interacts
+const AddGoalDialog = dynamic(
+  () => import("./add-goal-dialog").then((mod) => ({ default: mod.AddGoalDialog })),
+  { ssr: false }
+)
+const EditGoalDialog = dynamic(
+  () => import("./edit-goal-dialog").then((mod) => ({ default: mod.EditGoalDialog })),
+  { ssr: false }
+)
+const ContributeToGoalDialog = dynamic(
+  () => import("./contribute-to-goal-dialog").then((mod) => ({ default: mod.ContributeToGoalDialog })),
+  { ssr: false }
+)
+const ManageCategoriesDialog = dynamic(
+  () => import("./manage-categories-dialog").then((mod) => ({ default: mod.ManageCategoriesDialog })),
+  { ssr: false }
+)
+const BudgetOverviewDialog = dynamic(
+  () => import("./budget-overview-dialog").then((mod) => ({ default: mod.BudgetOverviewDialog })),
+  { ssr: false }
+)
 
 interface GoalsSectionProps {
   userId: string

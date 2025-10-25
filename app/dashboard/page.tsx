@@ -1,15 +1,24 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { ExpensesSection } from "@/components/dashboard/expenses-section"
 import { GoalsSection } from "@/components/dashboard/goals-section"
-import { CalendarSection } from "@/components/dashboard/calendar-section"
-import { TipsSection } from "@/components/dashboard/tips-section"
 import { IncomeSection } from "@/components/dashboard/income-section"
 import { SummarySection } from "@/components/dashboard/summary-section"
 import { BudgetAlerts } from "@/components/dashboard/budget-alerts"
 import { BillAlerts } from "@/components/dashboard/bill-alerts"
 import { BillsSection } from "@/components/dashboard/bills-section"
+
+// Lazy load non-critical sections for better initial page load
+const CalendarSection = dynamic(
+  () => import("@/components/dashboard/calendar-section").then((mod) => ({ default: mod.CalendarSection })),
+  { loading: () => <div className="h-64 bg-gray-100 rounded-3xl animate-pulse" /> }
+)
+const TipsSection = dynamic(
+  () => import("@/components/dashboard/tips-section").then((mod) => ({ default: mod.TipsSection })),
+  { loading: () => <div className="h-48 bg-gray-100 rounded-3xl animate-pulse" /> }
+)
 
 export default async function DashboardPage() {
   const supabase = await createClient()

@@ -1,12 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { createClient } from "@/lib/supabase/client"
 import type { Transaction, Goal, EWallet } from "@/lib/types"
-import { AddWalletDialog } from "./add-wallet-dialog"
-import { EditWalletDialog } from "./edit-wallet-dialog"
-import { CashInOutDialog } from "./cash-in-out-dialog"
-import { WalletTransferDialog } from "./wallet-transfer-dialog"
 import { SpendingInsightsCard } from "./spending-insights-card"
 import { AvailableToSpendCard } from "./available-to-spend-card"
 import { BudgetInsightsCard } from "./budget-insights-card"
@@ -22,6 +19,24 @@ import {
   getDailySpendingData,
   getCategoryComparison
 } from "@/lib/utils/analytics"
+
+// Lazy load dialogs - only loaded when user interacts
+const AddWalletDialog = dynamic(
+  () => import("./add-wallet-dialog").then((mod) => ({ default: mod.AddWalletDialog })),
+  { ssr: false }
+)
+const EditWalletDialog = dynamic(
+  () => import("./edit-wallet-dialog").then((mod) => ({ default: mod.EditWalletDialog })),
+  { ssr: false }
+)
+const CashInOutDialog = dynamic(
+  () => import("./cash-in-out-dialog").then((mod) => ({ default: mod.CashInOutDialog })),
+  { ssr: false }
+)
+const WalletTransferDialog = dynamic(
+  () => import("./wallet-transfer-dialog").then((mod) => ({ default: mod.WalletTransferDialog })),
+  { ssr: false }
+)
 
 interface SummarySectionProps {
   userId: string
