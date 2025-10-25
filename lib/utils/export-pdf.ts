@@ -129,7 +129,12 @@ export function exportMonthlySummaryToPDF(data: MonthlyReportData) {
   doc.text(`₱${data.total_expenses.toFixed(2)}`, 80, 68)
 
   doc.text(`Net Savings:`, 20, 76)
-  doc.setTextColor(data.net_savings >= 0 ? [34, 197, 94] : [239, 68, 68]) // Green or red
+  // Set color: green if positive, red if negative
+  if (data.net_savings >= 0) {
+    doc.setTextColor(34, 197, 94) // Green
+  } else {
+    doc.setTextColor(239, 68, 68) // Red
+  }
   doc.text(`₱${data.net_savings.toFixed(2)}`, 80, 76)
 
   doc.setTextColor(0)
