@@ -187,3 +187,71 @@ export interface FilterPreset {
   created_at: string
   updated_at: string
 }
+
+// Bill tracking and reminder types
+export type BillStatus = "unpaid" | "paid" | "overdue" | "scheduled"
+
+export interface Bill {
+  id: string
+  user_id: string
+  name: string
+  amount: number
+  due_date: string // ISO date string
+  category_id: string | null
+  category_name?: string | null
+  category_icon?: string | null
+  category_color?: string | null
+  status: BillStatus
+
+  // Recurrence settings
+  is_recurring: boolean
+  recurrence_pattern?: RecurrencePattern | null
+  recurrence_end_date?: string | null
+
+  // Reminder settings
+  reminder_days_before: number
+  reminder_enabled: boolean
+
+  // Auto-payment settings
+  auto_pay_enabled: boolean
+  wallet_id?: string | null
+
+  // Matching and tracking
+  linked_transaction_id?: string | null
+  last_paid_date?: string | null
+  payment_count: number
+
+  // Notes and metadata
+  notes?: string | null
+  merchant_name?: string | null
+
+  created_at: string
+  updated_at: string
+}
+
+export interface UpcomingBill extends Bill {
+  days_until_due: number
+  reminder_date: string
+  should_show_reminder: boolean
+  is_overdue: boolean
+}
+
+export interface BillAnalytics {
+  user_id: string
+  monthly_bills_count: number
+  monthly_bills_total: number
+  recurring_bills_count: number
+  paid_count: number
+  unpaid_count: number
+  overdue_count: number
+  max_bill_amount: number
+  most_expensive_bill: string | null
+  on_time_payment_rate: number
+}
+
+export interface BillMatchResult {
+  transaction_id: string
+  bill_id: string
+  confidence_score: number // 0-100
+  match_level: "high" | "medium" | "low" // >70, 50-70, <50
+}

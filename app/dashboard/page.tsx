@@ -8,6 +8,8 @@ import { TipsSection } from "@/components/dashboard/tips-section"
 import { IncomeSection } from "@/components/dashboard/income-section"
 import { SummarySection } from "@/components/dashboard/summary-section"
 import { BudgetAlerts } from "@/components/dashboard/budget-alerts"
+import { BillAlerts } from "@/components/dashboard/bill-alerts"
+import { BillsSection } from "@/components/dashboard/bills-section"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -23,16 +25,27 @@ export default async function DashboardPage() {
   // Fetch user profile
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
+  // Fetch categories and wallets for bills section
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+
+  const { data: wallets } = await supabase.from("e_wallets").select("*").eq("user_id", user.id)
+
   return (
     <DashboardLayout profile={profile}>
       <div className="flex-1 flex gap-6 p-6 overflow-auto">
         {/* Main Content */}
         <div className="flex-1 flex flex-col gap-6">
-          {/* Budget Alerts - Shows at top when there are warnings */}
+          {/* Alerts - Shows at top when there are warnings */}
           <BudgetAlerts userId={user.id} />
+          <BillAlerts />
 
           <ExpensesSection userId={user.id} />
           <GoalsSection userId={user.id} />
+          <BillsSection categories={categories || []} wallets={wallets || []} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CalendarSection userId={user.id} />
             <div className="flex flex-col gap-6">
