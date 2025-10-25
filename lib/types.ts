@@ -255,3 +255,84 @@ export interface BillMatchResult {
   confidence_score: number // 0-100
   match_level: "high" | "medium" | "low" // >70, 50-70, <50
 }
+
+// Export and reporting types
+export type ExportFormat = "csv" | "xlsx" | "pdf"
+export type ReportType = "monthly_summary" | "category_analysis" | "goal_progress" | "tax_report" | "transactions"
+export type ReportPeriod = "today" | "this_week" | "this_month" | "last_month" | "this_year" | "last_year" | "custom"
+
+export interface ExportOptions {
+  format: ExportFormat
+  includeFilters?: boolean
+  dateRange?: {
+    from: string
+    to: string
+  }
+  categories?: string[]
+  includeMetadata?: boolean
+}
+
+export interface ReportOptions {
+  type: ReportType
+  period: ReportPeriod
+  customDateRange?: {
+    from: string
+    to: string
+  }
+  categories?: string[]
+  includeCharts?: boolean
+  includeInsights?: boolean
+}
+
+export interface ExportPreset {
+  id: string
+  user_id: string
+  name: string
+  description?: string | null
+  report_type: ReportType
+  format: ExportFormat
+  options: ReportOptions
+  is_scheduled?: boolean
+  schedule_frequency?: "daily" | "weekly" | "monthly" | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MonthlyReportData {
+  period: string
+  total_income: number
+  total_expenses: number
+  net_savings: number
+  savings_rate: number
+  top_expense_categories: Array<{
+    category_name: string
+    amount: number
+    percentage: number
+    transaction_count: number
+  }>
+  income_sources: Array<{
+    category_name: string
+    amount: number
+    percentage: number
+  }>
+  goals_progress: Array<{
+    goal_name: string
+    target_amount: number
+    current_amount: number
+    progress_percentage: number
+  }>
+}
+
+export interface CategoryAnalysisData {
+  category_name: string
+  total_spent: number
+  transaction_count: number
+  average_transaction: number
+  budget_amount: number | null
+  utilization_percentage: number | null
+  trend: "increasing" | "decreasing" | "stable"
+  monthly_breakdown: Array<{
+    month: string
+    amount: number
+  }>
+}

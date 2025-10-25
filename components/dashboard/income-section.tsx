@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Transaction, TransactionFilters, TransactionSort } from '@/lib/types'
+import type { Transaction, TransactionFilters, TransactionSort, ExportFormat } from '@/lib/types'
 import { AddTransactionDialog } from './add-transaction-dialog'
 import { TransactionFiltersComponent } from './transaction-filters'
+import { ExportDialog } from './export-dialog'
 import { buildTransactionQuery } from '@/lib/utils/filter-builder'
+import { exportTransactionsToCSV } from '@/lib/utils/export-csv'
+import { exportTransactionsToExcel } from '@/lib/utils/export-xlsx'
+import { exportTransactionsToPDF } from '@/lib/utils/export-pdf'
+import { format } from 'date-fns'
 
 interface IncomeSectionProps {
   userId: string
@@ -77,6 +82,49 @@ export function IncomeSection({ userId }: IncomeSectionProps) {
     if (count !== null) setTotalCount(count)
   }
 
+  const handleExport = async (
+    exportFormat: ExportFormat,
+    options: { includeFilters?: boolean; includeMetadata?: boolean }
+  ) => {
+    // Fetch all income (or filtered) for export
+    const exportQuery = buildTransactionQuery(
+      supabase,
+      userId,
+      'income',
+      options.includeFilters ? filters : {},
+      sort,
+      undefined // No limit for export
+    )
+
+    const { data } = await exportQuery
+    if (!data || data.length === 0) {
+      alert('No income to export')
+      return
+    }
+
+    const filename = `income_${format(new Date(), 'yyyy-MM-dd')}`
+
+    // Export based on format
+    switch (exportFormat) {
+      case 'csv':
+        exportTransactionsToCSV(data, filename)
+        break
+      case 'xlsx':
+        exportTransactionsToExcel(data, filename)
+        break
+      case 'pdf':
+        const dateRange = filters.dateFrom && filters.dateTo
+          ? { from: filters.dateFrom, to: filters.dateTo }
+          : undefined
+        exportTransactionsToPDF(data, {
+          title: 'Income Report',
+          dateRange,
+          includeMetadata: options.includeMetadata,
+        })
+        break
+    }
+  }
+
   const scholarshipAmount = income.find((i) => i.category_name === 'Scholarship')?.amount || 0
   const allowanceAmount = income.find((i) => i.category_name === 'Allowance')?.amount || 0
   const otherAmount = total - scholarshipAmount - allowanceAmount
@@ -91,6 +139,7 @@ export function IncomeSection({ userId }: IncomeSectionProps) {
           Cash Inflow
         </h2>
         <div className="flex gap-2">
+          <ExportDialog onExport={handleExport} exportType="transactions" />
           <AddTransactionDialog
             userId={userId}
             type="income"

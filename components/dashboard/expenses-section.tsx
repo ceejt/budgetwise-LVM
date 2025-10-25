@@ -4,12 +4,17 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import type { Transaction, TransactionFilters, TransactionSort } from "@/lib/types"
+import type { Transaction, TransactionFilters, TransactionSort, ExportFormat } from "@/lib/types"
 import { AddTransactionDialog } from "./add-transaction-dialog"
 import { EditTransactionDialog } from "./edit-transaction-dialog"
 import { RecurringTransactionsDialog } from "./recurring-transactions-dialog"
 import { TransactionFiltersComponent } from "./transaction-filters"
+import { ExportDialog } from "./export-dialog"
 import { buildTransactionQuery } from "@/lib/utils/filter-builder"
+import { exportTransactionsToCSV } from "@/lib/utils/export-csv"
+import { exportTransactionsToExcel } from "@/lib/utils/export-xlsx"
+import { exportTransactionsToPDF } from "@/lib/utils/export-pdf"
+import { format } from "date-fns"
 
 interface ExpensesSectionProps {
   userId: string
@@ -68,6 +73,49 @@ export function ExpensesSection({ userId }: ExpensesSectionProps) {
     }
   }
 
+  const handleExport = async (
+    exportFormat: ExportFormat,
+    options: { includeFilters?: boolean; includeMetadata?: boolean }
+  ) => {
+    // Fetch all expenses (or filtered) for export
+    const exportQuery = buildTransactionQuery(
+      supabase,
+      userId,
+      "expense",
+      options.includeFilters ? filters : {},
+      sort,
+      undefined // No limit for export
+    )
+
+    const { data } = await exportQuery
+    if (!data || data.length === 0) {
+      alert("No expenses to export")
+      return
+    }
+
+    const filename = `expenses_${format(new Date(), "yyyy-MM-dd")}`
+
+    // Export based on format
+    switch (exportFormat) {
+      case "csv":
+        exportTransactionsToCSV(data, filename)
+        break
+      case "xlsx":
+        exportTransactionsToExcel(data, filename)
+        break
+      case "pdf":
+        const dateRange = filters.dateFrom && filters.dateTo
+          ? { from: filters.dateFrom, to: filters.dateTo }
+          : undefined
+        exportTransactionsToPDF(data, {
+          title: "Expense Report",
+          dateRange,
+          includeMetadata: options.includeMetadata,
+        })
+        break
+    }
+  }
+
   return (
     <div className="bg-white rounded-3xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
@@ -77,6 +125,7 @@ export function ExpensesSection({ userId }: ExpensesSectionProps) {
           </h2>
         </div>
         <div className="flex gap-2">
+          <ExportDialog onExport={handleExport} exportType="transactions" />
           <RecurringTransactionsDialog userId={userId} onSuccess={fetchExpenses} />
           <AddTransactionDialog userId={userId} type="expense" onSuccess={fetchExpenses} />
           <Button
