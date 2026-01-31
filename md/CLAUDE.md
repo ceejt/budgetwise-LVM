@@ -25,7 +25,7 @@ npm run lint         # Run ESLint
 
 ### Tech Stack
 
-- **Frontend**: Next.js 15.2.4 with App Router (server & client components), React 18, TypeScript
+- **Frontend**: Next.js 16.0.0 with App Router (server & client components), React 18, TypeScript
 - **UI**: shadcn/ui (70+ Radix UI components), Tailwind CSS v4, Lucide icons, Recharts for charts
 - **Backend**: Supabase (PostgreSQL with Row-Level Security)
 - **Authentication**: Supabase Auth (email/password + Google OAuth)
