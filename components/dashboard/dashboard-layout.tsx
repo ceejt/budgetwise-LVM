@@ -52,8 +52,9 @@ export function DashboardLayout({ children, profile }: DashboardLayoutProps) {
         {/* Collapse Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute top-4 -right-3 z-10 bg-white border rounded-full p-1 shadow-sm hover:bg-gray-50"
+          className="absolute top-4 -right-3 z-50 bg-white border rounded-full p-1 shadow-sm hover:bg-gray-50 transition-colors"
           style={{ borderColor: "#E0E0E0" }}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" style={{ color: "#293F55" }} />
