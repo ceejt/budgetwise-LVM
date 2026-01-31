@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,6 +10,10 @@ import {
   Settings,
   LogOut,
   Plus,
+  Wallet,
+  Award,
+  Star,
+  TrendingUp,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -42,14 +45,24 @@ export function DashboardLayout({ children, profile }: DashboardLayoutProps) {
       .slice(0, 2);
   };
 
+  // Navigation items with icons
+  const navigationItems = [
+    { icon: Wallet, label: "Campus Cash", href: "#" },
+    { icon: Award, label: "Badge", href: "#" },
+    { icon: Star, label: "Points", href: "#" },
+    { icon: TrendingUp, label: "Progress", href: "#" },
+  ];
+
   return (
     <div className="flex h-screen" style={{ backgroundColor: "#F5F5F5" }}>
       {/* Left Sidebar */}
       <div
-        className={`relative flex flex-col bg-white border-r transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`}
+        className={`relative flex flex-col bg-white border-r transition-all duration-300 ${
+          isCollapsed ? "w-20" : "w-64"
+        }`}
         style={{ borderColor: "#E0E0E0" }}
       >
-        {/* Collapse Button */}
+        {/* Collapse Button - Fixed positioning */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute top-4 -right-3 z-50 bg-white border rounded-full p-1 shadow-sm hover:bg-gray-50 transition-colors"
@@ -63,7 +76,7 @@ export function DashboardLayout({ children, profile }: DashboardLayoutProps) {
           )}
         </button>
 
-        <div className="flex-1 flex flex-col p-6">
+        <div className="flex-1 flex flex-col p-4 overflow-hidden">
           {/* Logo */}
           <div className="mb-8">
             {!isCollapsed ? (
@@ -91,7 +104,7 @@ export function DashboardLayout({ children, profile }: DashboardLayoutProps) {
           <div className="mb-6">
             <div className="flex items-center gap-3">
               <Avatar
-                className="h-12 w-12"
+                className="h-12 w-12 flex-shrink-0"
                 style={{ backgroundColor: "#72ADFD" }}
               >
                 <AvatarFallback className="text-white">
@@ -117,49 +130,47 @@ export function DashboardLayout({ children, profile }: DashboardLayoutProps) {
           {/* Add Widget Button */}
           <Button
             variant="outline"
-            className="mb-6 justify-start bg-transparent"
+            className={`mb-6 bg-transparent ${isCollapsed ? "px-0 justify-center" : "justify-start"}`}
             style={{ borderColor: "#E0E0E0", color: "#293F55" }}
+            title={isCollapsed ? "Add Widget" : undefined}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className={`h-4 w-4 ${isCollapsed ? "" : "mr-2"}`} />
             {!isCollapsed && "Add Widget"}
           </Button>
 
-          {/* Navigation Items */}
+          {/* Navigation Items with Icons */}
           <div className="flex-1 space-y-2">
-            <div
-              className="px-4 py-3 rounded-lg text-sm"
-              style={{ backgroundColor: "#F5F5F5", color: "#293F55" }}
-            >
-              {!isCollapsed ? "Campus Cash" : "CC"}
-            </div>
-            <div
-              className="px-4 py-3 rounded-lg text-sm"
-              style={{ backgroundColor: "#F5F5F5", color: "#293F55" }}
-            >
-              {!isCollapsed ? "Badge" : "B"}
-            </div>
-            <div
-              className="px-4 py-3 rounded-lg text-sm"
-              style={{ backgroundColor: "#F5F5F5", color: "#293F55" }}
-            >
-              {!isCollapsed ? "Points" : "P"}
-            </div>
-            <div
-              className="px-4 py-3 rounded-lg text-sm"
-              style={{ backgroundColor: "#F5F5F5", color: "#293F55" }}
-            >
-              {!isCollapsed ? "Progress" : "Pr"}
-            </div>
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  className={`w-full px-4 py-3 rounded-lg text-sm transition-colors hover:bg-gray-100 flex items-center ${
+                    isCollapsed ? "justify-center" : "justify-start"
+                  }`}
+                  style={{ backgroundColor: "#F5F5F5", color: "#293F55" }}
+                  title={isCollapsed ? item.label : undefined}
+                  onClick={() => {
+                    // Handle navigation here
+                    console.log(`Navigate to ${item.label}`);
+                  }}
+                >
+                  <Icon className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
+                  {!isCollapsed && <span>{item.label}</span>}
+                </button>
+              );
+            })}
           </div>
 
           {/* Settings */}
           <Link href="/settings">
             <Button
               variant="ghost"
-              className="w-full justify-start mb-2"
+              className={`w-full mb-2 ${isCollapsed ? "px-0 justify-center" : "justify-start"}`}
               style={{ color: "#293F55" }}
+              title={isCollapsed ? "Settings" : undefined}
             >
-              <Settings className="h-4 w-4 mr-2" />
+              <Settings className={`h-4 w-4 ${isCollapsed ? "" : "mr-2"}`} />
               {!isCollapsed && "Settings"}
             </Button>
           </Link>
@@ -168,10 +179,11 @@ export function DashboardLayout({ children, profile }: DashboardLayoutProps) {
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start"
+            className={`w-full ${isCollapsed ? "px-0 justify-center" : "justify-start"}`}
             style={{ color: "#293F55" }}
+            title={isCollapsed ? "Log out" : undefined}
           >
-            <LogOut className="h-4 w-4 mr-2" />
+            <LogOut className={`h-4 w-4 ${isCollapsed ? "" : "mr-2"}`} />
             {!isCollapsed && "Log out"}
           </Button>
         </div>
