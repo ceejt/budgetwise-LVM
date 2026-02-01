@@ -69,24 +69,6 @@ export default function SignInPage() {
       className="flex min-h-screen w-full items-center justify-center p-6"
       style={{ backgroundColor: "#F5F5F5" }}
     >
-      {/* Learn More Button - Top Right */}
-      <div className="absolute top-6 right-6">
-        <a
-          href="https://budgetwise.netlify.app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Button
-            variant="outline"
-            className="gap-2"
-            style={{ borderColor: "#72ADFD", color: "#293F55" }}
-          >
-            <Info className="h-4 w-4" />
-            Learn More
-          </Button>
-        </a>
-      </div>
-
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold mb-2" style={{ color: "#293F55" }}>
@@ -191,7 +173,6 @@ export default function SignInPage() {
           </CardContent>
         </Card>
 
-        {/* Learn More Footer Link */}
         <div className="mt-6 text-center">
           <a
             href="https://budgetwise.netlify.app"
