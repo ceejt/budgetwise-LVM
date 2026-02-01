@@ -172,18 +172,6 @@ export default function SignInPage() {
             </form>
           </CardContent>
         </Card>
-
-        <div className="mt-6 text-center">
-          <a
-            href="https://budgetwise.netlify.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-gray-600 hover:text-gray-900 inline-flex items-center gap-1 transition-colors"
-          >
-            <Info className="h-4 w-4" />
-            Learn more about BudgetWise
-          </a>
-        </div>
       </div>
     </div>
   );
