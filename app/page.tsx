@@ -37,13 +37,6 @@ export default function HomePage() {
             </Button>
           </Link>
         </div>
-        <div className="mt-6">
-          <Link href="/demo">
-            <Button size="lg" variant="ghost" style={{ color: "#72ADFD" }}>
-              Try Demo Dashboard →
-            </Button>
-          </Link>
-        </div>
       </div>
     </div>
   );
