@@ -1,47 +1,54 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Info } from "lucide-react";
 
 export default function SignInPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault();
+    const supabase = createClient();
+    setIsLoading(true);
+    setError(null);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
-      if (error) throw error
-      router.push("/dashboard")
+      });
+      if (error) throw error;
+      router.push("/dashboard");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleSignIn = async () => {
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
+    const supabase = createClient();
+    setIsLoading(true);
+    setError(null);
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -49,16 +56,37 @@ export default function SignInPage() {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
-      })
-      if (error) throw error
+      });
+      if (error) throw error;
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
-      setIsLoading(false)
+      setError(error instanceof Error ? error.message : "An error occurred");
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center p-6" style={{ backgroundColor: "#F5F5F5" }}>
+    <div
+      className="flex min-h-screen w-full items-center justify-center p-6"
+      style={{ backgroundColor: "#F5F5F5" }}
+    >
+      {/* Learn More Button - Top Right */}
+      <div className="absolute top-6 right-6">
+        <a
+          href="https://budgetwise.netlify.app"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button
+            variant="outline"
+            className="gap-2"
+            style={{ borderColor: "#72ADFD", color: "#293F55" }}
+          >
+            <Info className="h-4 w-4" />
+            Learn More
+          </Button>
+        </a>
+      </div>
+
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold mb-2" style={{ color: "#293F55" }}>
@@ -115,7 +143,9 @@ export default function SignInPage() {
                     <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
                   </div>
                 </div>
 
@@ -149,14 +179,31 @@ export default function SignInPage() {
               </div>
               <div className="mt-4 text-center text-sm">
                 Don't have an account?{" "}
-                <Link href="/auth/signup" className="underline underline-offset-4" style={{ color: "#72ADFD" }}>
+                <Link
+                  href="/auth/signup"
+                  className="underline underline-offset-4"
+                  style={{ color: "#72ADFD" }}
+                >
                   Sign up
                 </Link>
               </div>
             </form>
           </CardContent>
         </Card>
+
+        {/* Learn More Footer Link */}
+        <div className="mt-6 text-center">
+          <a
+            href="https://budgetwise.netlify.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-600 hover:text-gray-900 inline-flex items-center gap-1 transition-colors"
+          >
+            <Info className="h-4 w-4" />
+            Learn more about BudgetWise
+          </a>
+        </div>
       </div>
     </div>
-  )
+  );
 }
