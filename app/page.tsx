@@ -40,7 +40,7 @@ export default function HomePage() {
         </div>
         <div className="mt-6 flex justify-center">
           <a
-            href="https://budgetwise.netlify.app"
+            href="https://budgetwise-mvp.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-gray-600 hover:text-gray-900 inline-flex items-center gap-1 transition-colors"
